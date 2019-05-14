@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"?>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    
+    <link rel="stylesheet" href='https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css' >
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet"> -->
+
+    <script src="static/js/kinetic-v5.1.0.min.js"></script>
+    <script src="https://requirejs.org/docs/release/2.3.5/minified/require.js"></script>
+    <!-- button and slider css -->
+    <link rel="stylesheet" type="text/css" href="static/css/buttons.css">
+    
+    <style>
+        
+ 
+    .modal-backdrop {background: none;}
+  
+    .content { 
+        margin: auto;
+        width: 65%;
+        margin-top: auto;
+    }
+    .top-buffer { margin-top:4px; }
+
+    .pos-center {
+        padding-left:0;
+        padding-right:0;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        }
+
+    .modal-content {
+    /* 80% of window height */
+    height: 30%;
+    }
+
+    .modal-body {
+    /* 100% = dialog height, 120px = header + footer */
+    max-height: calc(100% - 120px);
+    overflow-y: scroll;
+    }
+    #shade, #modal { display: none; }
+        #shade { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 100%; }
+        #modal { display: none; position: absolute; z-index: 101; top: 45%; left: 50%; width: 50%; float:left;  transform: translate(-50%, -50%);}
+        #shade { background: rgb(48, 46, 46); opacity: 0.8; }
+   
+    
+    #modal1 { display: none; position: fixed; z-index: 102; top: 15%; left: 30%; width: 70%; float:left;  transform: translate(-00%, -00%); }
+     
+    .center-please{
+        position: relative;  left: 50%; float:left; transform: translate(-50%,0);
+    }
+        
+        .nice_text {
+            /* padding: 14px 10px; */
+            /* border: 0 none; */
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            /* text-transform: uppercase; */
+        }
+        .gif { position: relative;}
+        
+    </style>
+    <script>
+        // colors as ordered by keybindings i.e.: branch, trunc, bud, baguette, coursons, tourelle, wire, courdons
+        colors = ["rgb(65,150,65)", "rgb(128,63,17)", "rgb(51,167,204)", "rgb(193,46,42)", "rgb(214,203,0)"] //, "rgb(235,147,22)", "rgb(226,226,226)", "rgb(82,0,189)"]
+        STATIC_ROOT = "static";
+
+        var init_time = $.now();
+        DRAW = 1;
+        ERASE = 0;
+        LINE = 2;
+        LINE_BUD= 3;
+        drawState= LINE;
+        var isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+        // Opera 8.0+ (UA detection to detect Blink/v8-powered Opera)
+        var isFirefox = typeof InstallTrigger !== 'undefined';   // Firefox 1.0+
+        var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
+        // At least Safari 3+: "[object HTMLElementConstructor]"
+        var isChrome = !!window.chrome && !isOpera;              // Chrome 1+
+        var isIE = /*@cc_on!@*/false || !!document.documentMode;   // At least IE6
+        $(window).load(function(){
+            if (!isChrome){
+                alert('Sorry. This HIT only supports Chrome');
+                $('.btn').attr('disabled', 'disabled');
+            }
+            $('#btn-draw').on('click', function(){
+                jQuery.event.trigger({ type : 'keypress', which : 81 });
+            })
+            $('#btn-erase').on('click', function(){
+                jQuery.event.trigger({ type : 'keypress', which : 83 });
+            })
+            $('#btn-line').on('click', function(){
+                jQuery.event.trigger({ type : 'keypress', which : 68 });
+            })
+            // $('#btn-line-bud').on('click', function(){
+            //     jQuery.event.trigger({ type : 'keypress', which : 70 });
+            // })
+
+            // uncomment submit form if you'd like to submit to MTurk
+            $('#btn-submit').on('click', function(){
+                // the show the annotated base64 region
+                var ans = explicitDrawImg.src;
+                $("input[name='isObj']").val(1)
+                submit_form();
+            })
+
+            $('#btn-submit-no-obj').on('click', function(){
+                $("input[name='isObj']").val(0)
+                submit_form();
+            })
+        });
+        function draw_state_toggle(drawColor,drawState){
+            
+            if(drawState == ERASE){
+                $('#btn-draw').removeClass('active')
+                $('#btn-line').removeClass('active')
+                $('#btn-line-bud').removeClass('active')
+                $('#btn-erase').addClass('active')
+                glassmask.fill('white');
+                jQuery.event.trigger({ type : 'mousemove' });
+            }
+            else if (drawState == LINE){
+                $('#btn-draw').removeClass('active')
+                $('#btn-erase').removeClass('active')
+                $('#btn-line-bud').removeClass('active')
+                $('#btn-line').addClass('active')
+                glassmask.fill(drawColor);
+                jQuery.event.trigger({ type : 'mousemove' });
+            }
+        }
+        
+
+    </script>
+    <script src = "static/php/dir_cutting.php"></script> <!-- list *.png files in data/unlabeled/ in an array 'files'-->
+    <script> 
+    // first two entries are "" and ".", something to do with php function scandir()
+    files.splice(0,2);
+    console.log(directory)
+    //Take a random image
+    inputFile = files[Math.floor(Math.random()*files.length)];
+    inputFile = "data/uncut/"+ inputFile
+    console.log('using picture:', inputFile)
+    
+    
+    </script> 
+
+  </head>
+
+  
+  <body>
+    <div class="modal " id="modal1" style="width:1300px; display: none;" >
+        <div class="modal-header">
+            <button type="button" class="close" onclick="$('#modal1').hide();">Fermer</button>
+            <h3 ng-hide="newUser">Exemple et explications</h3>
+          </div>
+         
+          
+        <ul class="nav nav-tabs" id="tabContent">
+            <li class="active"><a href="#controls" data-toggle="tab">Contrôles</a></li>
+            <li><a href="#goodandbad" data-toggle="tab">Bonnes et mauvaises labellisations</a></li>
+            <li><a href="#whatiswhat" data-toggle="tab">Précision sur les éléments de la vigne</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane active" id="controls">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class = "span3">
+                            <p class= "nice_text">Détails</p>
+                        </div>
+                        <div class = "span3">
+                            <p class= "nice_text">Outil ligne (D)</p>
+                        </div>
+                        <!-- <div class = "span3">
+                            <p class= "nice_text">Dessiner un bourgeon + une branche</p>
+                        </div> -->
+                        <div class = "span3">
+                            <p class= "nice_text">Corriger les erreurs</p>
+                        </div>
+
+                    </div>
+                    <div class ="row">
+                        <div class = "span3">
+                            <p style="text-align:justify">
+                                Voici quelques exemples d’utilisation des outils. 
+                                Utiliser les raccourcis clavier (indiqué sur le bouton de l’outil) augmente la vitesse de travail et réduit le nombre de clics.
+                            </p> 
+                        </div>
+                        <div class = "span3">
+                            <img class="gif" src="static/gifs/draw_lines.gif">
+                            <p>
+                            Dessiner avec le outil ligne, c'est plus vite.<br> 
+                        </div>   
+                        
+<!-- 
+                        <div class = "span3">
+                            <img class="gif" src="static/gifs/quickChange.gif">
+                            <p>
+                            Utiliser les raccourcis pour changer d’outil ou de couleur rapidement.<br> 
+                        </div>         -->
+                        <!-- <div class = "span3">
+                            <img class="gif" src="static/gifs/drawBud.gif" > 
+                            <br> 
+                            Dessiner un bourgeon et une branche en une fois. Cliquer juste une fois pour faire un bourgeon. 
+                            Cliquer et laisser appuyer sur le bouton pour dessiner un bourgeon puis une branche.
+                            <br>
+                        </div>
+                         -->
+                        <div class = "span3">
+                            <img class="gif" src="static/gifs/ctrlZandErase.gif">   
+                            <br>Utiliser la gomme et l’historique pour corriger les erreurs. <br> 
+                        </div>     
+                    </div>
+                    <div class= "row">
+                        <div class="span3 offset3">
+                            <p class ="nice_text">Raccourcis: D</p>
+                        </div>
+                        <!-- <div class = "span3">
+                            <p class ="nice_text">Raccourcis: F</p>
+                        </div> -->
+                        <div class = "span3">
+                            <p class ="nice_text">Raccourcis: E, Ctrl+Z, Ctrl+maj+Z</p>              
+                        </div>
+                    </div>
+                </div>
+            </div>   
+
+            
+            <div class="tab-pane" id="goodandbad">
+                <div class="container-fluid">
+                    <div class ="row">
+                        <div class="span3">
+                            <p class= "nice_text">Détails</p>
+                            <p style="text-align:justify">
+                                Plus la labellisation est précise, plus celle-ci prend du temps à faire. 
+                                Voici donc quelques instructions sur le niveau de précision requis. 
+                                Il est important de changer la taille du pinceau avec la molette de la souris afin d’approcher au plus près la taille de la branche. 
+                                Il est préférable de dépasser un peu des branches plutôt que d’être trop fin.
+                            </p>
+                        </div>
+
+                        <div class="span1 offset1">
+                            <div class="row"> <img  src="static/images/good_branch.png" width ="100%" height ="130"></div>
+                            <div class="row"> <div class= "span2 text-center"><p class="nice_text">Bonne</p> </div></div>
+                        </div>
+        
+                        <div class="span1">
+                            <div class="row"> <img src="static/images/bad_branch.png" width ="100%" height="130"></div>
+                            <div class="row"> <div class= "span2 text-center"><p class="nice_text">Mouvais</p> </div></div>
+                        </div>
+        
+                        <div class="span1 offset1">
+                            <div class="row"> <img  src="static/images/good_trunc.png" width ="100%" height ="130"></div>
+                            <div class="row"> <div class= "span2 text-center"><p class="nice_text">Bonne</p> </div></div>
+                        </div>
+        
+                        <div class="span1">
+                            <div class="row"> <img src="static/images/bad_trunc.png" width ="100%" height="130"></div>
+                            <div class="row"> <div class= "span2 text-center"><p class="nice_text">Mouvais</p> </div></div>
+                        </div>
+
+                        <div class="span1 offset1">
+                            <div class="row"> <img  src="static/images/good_bud.png" width ="100%" height ="130"></div>
+                            <div class="row"> <div class= "span2 text-center"><p class="nice_text">Bonne</p> </div></div>
+                        </div>
+        
+                        <div class="span1">
+                            <div class="row"> <img src="static/images/bad_bud.png" width ="100%" height="130"></div>
+                            <div class="row"> <div class= "span2 text-center"><p class="nice_text">Mouvais</p> </div></div>
+                        </div>
+                    </div>                           
+                </div> 
+            </div>      
+    
+            <div class="tab-pane" id="whatiswhat">
+                <div class="container-fluid">
+                    <div class ="row">
+                        <div class = "span3">
+                            <p class= "nice_text">Détails</p>
+                            <p style="text-align:justify">
+                                Les branches sont les sarments de l’année (poussé depuis la dernière taille). 
+                                Le courson est le bois de deux ans coupé court (généralement à 2 bourgeons). 
+                                La baguette n’existe que dans le guyot
+                            </p> 
+                        </div>
+                        <div class="span4">
+                            <img src = "static/images/crop1_2.jpg">
+                        </div>
+                        <div class="span4">
+                            <img src = " static/images/crop2.png">
+                        </div>
+                        
+                    </div>
+                    <div class = "row">
+                        <br>
+                    </div>
+                </div>
+            </div> 
+        </div>
+    </div>
+
+   
+    <div class="content">
+        <div class="row pos-center" style="margin-top: 20px">
+            <span>
+                <span class="btn-toolbar top-buffer">
+                    <button id='btn-erase' type="button"  class="btn" title="SHORTCUT S">
+                    <i class="fa fa-eraser"></i> Effacer (S)</button>
+                    <button id='btn-line' type="button"  class="btn" title="Click and drag for line. SHORTCUT D">
+                    <i class="fa fa-eraser"></i> Ligne (D)</button>      
+                    <!-- <button id='btn-line-bud' type="button" class="btn" title="Click and drag for bud + branch. Click once for only bud. SHORTCUT F">
+                    <i class="fa fa-eraser"></i> Branch + Bourgeon (F)</button>         -->
+                    <button id='btn-undo' type="button"  class="btn">Annuler (crtl+Z)</button>
+                    <button id='btn-redo' type="button"  class="btn">Refaire (crtl+shift+Z)</button>
+                    <button id="btnhelp" class="btn btn-primary" onclick="$('#modal1').show();"  style="display: none;">Aide</button>
+                </span>
+
+                <span class="pull-right" >
+                    <button id="btnsubmit" class="btn btn-primary" >Envoyer</button>
+                </span>
+            </span>
+        </div>
+
+     <div class="row pos-center top-buffer">
+        <span>
+            <canvas id="canvas-img" class ="pos-center" style="display:none"></canvas>
+            <div id="container"  class="pos-center"></div>
+                <script src="static/js/label_script.js"></script>    
+            </div>
+        </span>
+    
+        <div class="row pos-center"> 
+            <span class="span btn-group top-buffer" >
+            
+                <div class="pull-left">
+                <button type="button" class="btn-success my-btn" id="btnbranch" style="display: none;" title="SHORTCUT 1">Branch (1)</button>
+                </div>
+                <div class="span">
+                    <button type="button" class="btn-brown my-btn" id="btntrunc" style="display: none;" title="SHORTCUT 2" >Trunc (2)</button>
+                </div>
+                <div class="span">
+                    <button type="button" class="btn-primary my-btn" id="btnbud" style="display: none;" title="SHORTCUT 3">Bourgeon (3)</button>
+                </div>
+                <div class="span">
+                    <button type="button" class="btn-danger my-btn" id="btnbaguette" style="display: none;" title="SHORTCUT 4">Baguette (4)</button>
+                </div>
+
+                <div class="span">
+                    <button type="button" class="btn-yellow my-btn" id="btncoursons" style="display: none;" title="SHORTCUT 5">coursons (5)</button>
+                </div>           
+            </span>
+        </div>
+          
+        <div class="span2" style = "margin-top: 15px; display: none;">
+            <div class="row pos-center">
+                <div class="slidecontainer">
+                        <input type="range" min="1" max="9" value="5" class="slider" id="myRange" title="Changer l'opacité de masque.">
+                </div>
+            </div>
+            <div class="row pos-center">
+                <span class = "pull-left nice_text" id="rangeValue">0.5</span>
+                <!-- some whitespace: -->
+                <div class = "span"></div> 
+                <span class = "center-please nice_text"> Opacité de masque</span>              
+            </div>
+        </div>
+                    
+    </div> 
+
+    <form id="myForm" method="post" action="static/php/upload_cutting.php">
+        <input id="inp_img" name="img" type="hidden" value="">
+        <input id="inp_filename" name="filename" type="hidden" value="">
+        <input id="inp_editor" name="editor" type="hidden" value="">
+    </form>
+
+        
+    <div id="shade"></div>
+        <div id="modal">
+            <!-- <p class ="center-please" style="color: white; font-size: 160%; font-weight: bold; font: Helvetica;">Your awesum mask</p> -->
+            <div class="row-fluid pos-center">
+                <span>
+                    <img id="modalImg" style="display: none;">
+                </span>
+            
+                <div class="row-fluid pos-center">    
+                    <div class="span4 pull-left">
+                        <button class = "btn btn-grey top-buffer"  id="modalClose">Ferme</button>
+                    </div>
+                    <div class="span4" style ="margin-top: 10px">
+                            <p style="font-size:130%; font-weight: bold; color: white">
+                                Veuillez indiquer votre nom:
+                                <textarea id="modal_editor" rows="1" cols="25" ></textarea>
+                            </p>
+                    </div>
+                    <div class="span4 pull-right">
+                        <button class = "btn btn-primary top-buffer" id="btnupload">Envoyer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        
+        var modal= document.getElementById('modal');
+        var shade= document.getElementById('shade');
+
+        document.getElementById('modalClose').onclick= function() {
+            modal.style.display=shade.style.display= 'none';
+        };
+        btnUpload = document.getElementById('btnupload');
+        btnUpload.onclick= function() {
+            var input_editor = document.getElementById("modal_editor").value;
+
+            if(input_editor == "" || input_editor ==null){
+                alert("Please fill in your name.")
+            }
+            else{
+                document.getElementById("inp_editor").value = input_editor;
+                form = document.getElementById('myForm')
+                form.submit();
+                modal.style.display=shade.style.display= 'none';
+            }
+        };
+
+        // This code is a workaround for IE6's lack of support for the
+        // position: fixed style.
+        //
+        if (!('maxHeight' in document.body.style)) {
+            function modalsize() {
+                var top= 100; //document.documentElement.scrollTop;
+                var winsize= document.documentElement.offsetHeight;
+                var docsize= document.documentElement.scrollHeight;
+                shade.style.height= Math.max(winsize, docsize)+'px';
+                modal.style.top= top ;//+Math.floor(winsize)+'px';
+            };
+            modal.style.position=shade.style.position= 'relative';
+            window.onscroll=window.onresize= modalsize;
+            modalsize();
+        }
+
+        //Pressing enter equals clicking the submit button
+        $(document).on('keypress',  function (e) {
+            
+            if($('#modal').is(':visible')) {
+                var key = e.which;
+                    if (key == 13) { //This is an ENTER 
+                        btnUpload.onclick();
+                    }
+                }
+        });
+    </script>
+
+    <script>
+
+    //If no submittion is given we ask if you want to leave the page
+    function goodbye(){
+    if(document.getElementById("inp_filename").value =="")
+    {return true;}
+    else {return false;}
+    }
+    //Make sure people dont just leave the page accidently
+    window.onbeforeunload = function(){
+        ask = goodbye();
+        if (ask){
+            return 'Are you sure you want to leave?';
+        }
+    }
+    </script>
+
+  </body>
+</html>
