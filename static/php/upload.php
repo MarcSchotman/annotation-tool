@@ -115,7 +115,16 @@
    </div>
    <script>
       function clicked(){
-         window.location.replace("https://www.orme.com/_modules_/annotation_tool/index.html")
+         var origin = window.location.origin;
+         var pathArray = window.location.pathname.split('/');
+         var basePath = "";
+         //Gets the current location on the server minus /static/php/upload.php
+         for( var i = 0; i < pathArray.length - 3 ; i++){
+            basePath += pathArray[i] + "/";
+         }
+         //Redirecting to our index.html at the current location of the server will be:
+         var indexPath = origin + basePath + "index.html";
+         window.location.replace(indexPath);         
       }
    </script>
 
