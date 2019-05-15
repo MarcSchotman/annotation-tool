@@ -156,6 +156,7 @@
         }
         
 
+    //GET THE IMAGES FROM THE DIRECTORY /DATA/UNLABELED
     </script>
     <script src = "static/php/dir.php"></script> <!-- list *.png files in data/unlabeled/ in an array 'files'-->
     <script> 
@@ -163,7 +164,7 @@
     files.splice(0,2);
     //Take a random image
     inputFile = files[Math.floor(Math.random()*files.length)];
-    inputFile = "data/unlabeled/"+ inputFile;
+    inputFile = "/data/unlabeled/" + inputFile;
     console.log('using picture:', inputFile);
     
     

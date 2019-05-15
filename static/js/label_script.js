@@ -991,9 +991,11 @@ $(document).ready(function () {
 try {
     // If no more images are found: fissa fissa we done :D
     imageObj.onerror = function(ev){
+        //console.log("couldnt find ", inputFile)
         inputFile = inputFile.slice(0,-4) + ".png"
-        imageObj.src =  "/_modules_/annotation_tool/" + inputFile
-        console.log('so now getting .png');
+        
+        imageObj.src = inputFile
+        //console.log('so now getting .png');
         
         // console.log(ev)
         // var imageFinished = new Image();
@@ -1010,7 +1012,7 @@ try {
     }
     // "/_modules_/annotation_tool" + 
     inputFile = inputFile + ".jpg"
-    imageObj.src =  "/_modules_/annotation_tool/" + inputFile;
+    imageObj.src =  inputFile;
     imageObj.classList.add("pos-center");
     imageObj.classList.add("img-rounded");
 }
